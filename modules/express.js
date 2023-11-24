@@ -82,6 +82,13 @@ app.delete("/users/:id", async (req, res) => {
   }
 });
 
+app.get("/calcularSoma", (req, res) => {
+  const num1 = parseFloat(req.query.num1);
+  const num2 = parseFloat(req.query.num2);
+  const resultado = num1 + num2;
+  res.json({ resultado });
+});
+
 const port = 8080;
 
 app.listen(port, () => console.log(`Rodando com express na porta ${port}!`));
