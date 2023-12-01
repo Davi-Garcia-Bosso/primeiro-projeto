@@ -82,6 +82,8 @@ app.delete("/users/:id", async (req, res) => {
   }
 });
 
+//Método app.get para lidar com a requisição do javascript
+
 app.get("/calcularSoma", (req, res) => {
   const num1 = parseFloat(req.query.num1);
   const num2 = parseFloat(req.query.num2);
