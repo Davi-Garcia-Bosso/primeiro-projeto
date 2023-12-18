@@ -1,4 +1,3 @@
-<!-- index.ejs -->
 <!DOCTYPE html>
 <html lang="pt-br">
   <head>
@@ -66,12 +65,12 @@
   </head>
   <body>
     <h1>Soma</h1>
-    <form id="calculadoraForm">
+    <form id="calculadoraForm" action="/calcularSoma" method="post">
       <label for="numero1">1° número:</label>
-      <input type="number" id="numero1" required />
+      <input type="number" name="num1" id="numero1" required />
 
       <label for="numero2">2° número:</label>
-      <input type="number" id="numero2" required />
+      <input type="number" name="num2" id="numero2" required />
 
       <button type="button" onclick="calcularSoma()">Calcular Soma</button>
     </form>
@@ -84,7 +83,16 @@
         const num2 = document.getElementById("numero2").value;
 
         // Enviar os dados para o servidor
-        fetch(`/calcularSoma?num1=${num1}&num2=${num2}`)
+        fetch("/calcularSoma", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            num1: num1,
+            num2: num2,
+          }),
+        })
           .then((response) => response.json())
           .then((data) => {
             document.getElementById(
