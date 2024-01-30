@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const userSchema = new mongoose.Schema({
+const numberSchema = new mongoose.Schema({
   Number_1: {
     type: Number,
     required: true,
@@ -15,6 +15,6 @@ const userSchema = new mongoose.Schema({
   },
 });
 
-const UserModel = mongoose.model("User", userSchema);
+const NumberModel = mongoose.model("Somatory", numberSchema);
 
-module.exports = UserModel;
+module.exports = NumberModel;
