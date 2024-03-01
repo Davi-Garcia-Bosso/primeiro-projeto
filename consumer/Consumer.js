@@ -1,30 +1,72 @@
-const amqp = require("amqplib");
+const { connect } = require("amqplib");
+const NumberModel = require("../src/models/number.model");
 
-async function consumeMessages() {
-  // Conectar ao servidor RabbitMQ
-  const connection = await amqp.connect("amqp://localhost");
-  const channel = await connection.createChannel();
+async function startConsumer() {
+  try {
+    const connection = await connect("amqp://localhost");
+    const channel = await connection.createChannel();
 
-  // Nome da fila que o consumidor irá escutar
-  const queueName = "Fila-soma";
+    const queue = "Fila-soma";
+    channel.assertQueue(queue, { durable: true });
 
-  // Declarar a fila com as configurações atuais
-  await channel.assertQueue(queueName, { durable: true });
+    console.log("Consumer está esperando por mensagens...");
 
-  console.log(
-    ` [*] Aguardando mensagens em ${queueName}. Para sair, pressione CTRL+C`
-  );
+    channel.consume(
+      queue,
+      async function (msg) {
+        try {
+          const data = JSON.parse(msg.content.toString());
 
-  // Configurar o consumidor
-  channel.consume(
-    queueName,
-    (msg) => {
-      const message = msg.content.toString();
-      console.log(` [x] Recebido: ${message}`);
-    },
-    { noAck: true }
-  );
+          // Verificar mensagem
+          if (!data || !data.number) {
+            console.error("Mensagem malformada:", msg.content.toString());
+            channel.reject(msg, false);
+            return;
+          }
+
+          // Realizar o cálculo
+          const resultado = data.number.Number_1 + data.number.Number_2;
+
+          // Atualizar o status para "done" e definir o resultado
+          NumberModel.findOneAndUpdate(
+            { _id: data.number._id },
+            { $set: { Status: "done", Result: resultado } },
+            { new: true, maxTimeMS: 10000 }
+          )
+            .then((updatedNumber) => {
+              if (!updatedNumber) {
+                console.error("Número não encontrado");
+                // Enviar uma resposta de erro ao rejeitar a mensagem
+                channel.reject(msg, false, {
+                  requeue: false,
+                  reason: "Número não encontrado",
+                });
+                return;
+              }
+
+              console.log("Resultado:", resultado);
+
+              // Acknowledge da mensagem
+              channel.ack(msg);
+            })
+            .catch((error) => {
+              console.error("Erro durante a atualização:", error);
+              // Enviar uma resposta de erro ao rejeitar a mensagem
+              channel.reject(msg, false);
+            });
+        } catch (error) {
+          console.error("Erro durante o processamento da mensagem:", error);
+          // Enviar uma resposta de erro ao rejeitar a mensagem
+          channel.reject(msg, false);
+        }
+      },
+      {
+        noAck: false,
+      }
+    );
+  } catch (error) {
+    console.error("Erro durante a inicialização do consumidor:", error);
+  }
 }
 
-// Iniciar o consumo de mensagens
-consumeMessages().catch(console.error);
+startConsumer(); // Iniciar o consumidor

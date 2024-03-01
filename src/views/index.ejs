@@ -65,7 +65,7 @@
   </head>
   <body>
     <h1>Soma</h1>
-    <form id="calculadoraForm" action="/calcularSoma" method="post">
+    <form id="calculadoraForm" action="/CalcAsync" method="post">
       <label for="numero1">1° número:</label>
       <input type="number" name="num1" id="numero1" required />
 
@@ -78,12 +78,12 @@
     <p id="resultado"></p>
 
     <script>
-      function calcularSoma() {
+      async function calcularSoma() {
         const num1 = document.getElementById("numero1").value;
         const num2 = document.getElementById("numero2").value;
 
         // Enviar os dados para o servidor
-        fetch("/calcularSoma", {
+        const response = await fetch("/calcularSoma", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -92,14 +92,46 @@
             num1: num1,
             num2: num2,
           }),
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            document.getElementById(
-              "resultado"
-            ).innerText = `Resultado: ${data.resultado}`;
-          })
-          .catch((error) => console.error("Erro:", error));
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            `Erro na resposta do servidor: ${response.statusText}`
+          );
+        }
+
+        const data = await response.json();
+
+        const resultadoElement = document.getElementById("resultado");
+        resultadoElement.innerText = `Calculando...`;
+
+        // Aguardar até que o status seja "done" ou ocorra um erro
+        while (data.Status !== "done" && data.Status !== "error") {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+
+          // Fazer uma solicitação GET para obter o resultado
+          console.log("Valor de data._id:", data._id);
+          const getResultResponse = await fetch(
+            `/getResult/${encodeURIComponent(data._id)}`,
+            {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          console.log("URL da solicitação:", `/getResult/${data._id}`);
+
+          if (getResultResponse.ok) {
+            const resultData = await getResultResponse.json();
+
+            if (resultData.Status === "done") {
+              resultadoElement.innerText = `Resultado: ${resultData.Result}`;
+              break;
+            }
+          }
+        }
       }
     </script>
   </body>
